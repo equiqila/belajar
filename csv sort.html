@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Display with Search and Sort</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Select a CSV file:</h2>
+<input type="file" id="fileInput" accept=".csv" />
+<br><br>
+
+<h3>Search in Table:</h3>
+<input type="text" id="searchInput" placeholder="Search for text..." />
+<button onclick="searchTable()">Search</button>
+<p id="result"></p>
+
+<h3>Sort Table:</h3>
+<select id="columnSelect">
+    <option value="0">Choose column</option>
+</select>
+<select id="orderSelect">
+    <option value="asc">Ascending</option>
+    <option value="desc">Descending</option>
+</select>
+<button onclick="applySort()">Sort</button>
+
+<br>
+<table id="csvTable"></table>
+
+<script>
+    let csvData = [];
+
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                displayCSVAsTable(contents);
+                csvData = contents.split('\n').map(row => row.split(','));  // Menggunakan koma sebagai separator
+                populateColumnSelect(csvData[0]);  // Populate column dropdown
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function displayCSVAsTable(csvText) {
+        const lines = csvText.trim().split('\n');
+        const table = document.getElementById('csvTable');
+        table.innerHTML = ''; // Clear previous content
+
+        lines.forEach((line, index) => {
+            const row = document.createElement('tr');
+            const cells = line.split(',');  // Menggunakan koma sebagai separator
+
+            cells.forEach((cellText, cellIndex) => {
+                const cell = document.createElement(index === 0 ? 'th' : 'td');
+                cell.textContent = cellText.trim();
+                row.appendChild(cell);
+            });
+
+            table.appendChild(row);
+        });
+    }
+
+    function searchTable() {
+        const searchValue = document.getElementById('searchInput').value.toLowerCase();
+        let matchCount = 0;
+
+        csvData.forEach(row => {
+            row.forEach(cell => {
+                if (cell.toLowerCase().includes(searchValue)) {
+                    matchCount++;
+                }
+            });
+        });
+
+        document.getElementById('result').textContent = `Found "${searchValue}" ${matchCount} times in the table.`;
+    }
+
+    function populateColumnSelect(headerRow) {
+        const select = document.getElementById('columnSelect');
+        select.innerHTML = ''; // Clear previous options
+
+        headerRow.forEach((header, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = header.trim();
+            select.appendChild(option);
+        });
+    }
+
+    function applySort() {
+        const columnIndex = document.getElementById('columnSelect').value;
+        const order = document.getElementById('orderSelect').value;
+
+        if (columnIndex === "0") {
+            alert("Please select a column to sort.");
+            return;
+        }
+
+        sortTable(parseInt(columnIndex), order);
+    }
+
+    function sortTable(columnIndex, order) {
+        const table = document.getElementById('csvTable');
+        const rows = Array.from(table.getElementsByTagName('tr'));
+        const headerRow = rows.shift();  // Keep the header row
+
+        const sortedRows = rows.sort((a, b) => {
+            const cellA = a.getElementsByTagName('td')[columnIndex].textContent.toLowerCase();
+            const cellB = b.getElementsByTagName('td')[columnIndex].textContent.toLowerCase();
+
+            if (!isNaN(cellA) && !isNaN(cellB)) {
+                return order === 'asc' ? parseFloat(cellA) - parseFloat(cellB) : parseFloat(cellB) - parseFloat(cellA);
+            }
+
+            return order === 'asc' ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+        });
+
+        // Clear and re-append sorted rows
+        table.innerHTML = '';
+        table.appendChild(headerRow);
+        sortedRows.forEach(row => table.appendChild(row));
+    }
+</script>
+
+</body>
+</html>
